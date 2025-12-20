@@ -3,7 +3,7 @@
 const EMAILJS_SERVICE_ID = 'service_ntjek1e';
 const EMAILJS_TEMPLATE_ID = 'template_z4in2ab'; // צריך ליצור Template ולקבל את ה-ID
 const EMAILJS_PUBLIC_KEY = 's1yWlJzB9AaOebjpn'; // צריך לקבל מ-Account > General
-const RECIPIENT_EMAIL = 'lotuspilates45@gmail.com';
+const RECIPIENT_EMAIL = 'liad.levin1@gmail.com';
 
 // Gift assignments based on registration order
 const giftAssignments = [
@@ -38,10 +38,25 @@ function saveRegistrationCount(count) {
 
 // Reset all registration data (for testing)
 function resetRegistrations() {
+    // Remove all registration data
     localStorage.removeItem('registrationCount');
     localStorage.removeItem('registrations');
+
+    // Verify the reset worked
+    const count = getRegistrationCount();
+    const registrations = JSON.parse(localStorage.getItem('registrations') || '[]');
+
     console.log('✅ כל נתוני ההרשמה אופסו בהצלחה!');
+    console.log('מספר ההרשמה הנוכחי:', count);
+    console.log('מספר הרשמות שנותרו:', registrations.length);
     console.log('מספר ההרשמה הבא יהיה: 1');
+
+    // Show alert to user
+    alert('✅ כל נתוני ההרשמה אופסו בהצלחה!\nמספר ההרשמה הבא יהיה: 1');
+
+    // Reload page to reflect changes
+    location.reload();
+
     return true;
 }
 
