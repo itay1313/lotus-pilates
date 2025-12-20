@@ -43,52 +43,116 @@ function getGiftForRegistration(registrationNumber) {
     return 'תודה על ההרשמה! נשמח לראותך באירוע!';
 }
 
+// Send WhatsApp message to user
+function sendWhatsAppMessage(registration, gift) {
+    // Format phone number (remove dashes, ensure it starts with country code)
+    let phoneNumber = registration.phone.replace(/-/g, '').replace(/\s/g, '');
+
+    // If phone doesn't start with country code, add Israel code (972)
+    if (!phoneNumber.startsWith('972') && !phoneNumber.startsWith('+972')) {
+        // Remove leading 0 if exists
+        if (phoneNumber.startsWith('0')) {
+            phoneNumber = phoneNumber.substring(1);
+        }
+        phoneNumber = '972' + phoneNumber;
+    }
+
+    // Remove + if exists
+    phoneNumber = phoneNumber.replace('+', '');
+
+    // Create WhatsApp message
+    const message = `🎉 מזל טוב! 🎉\n\nאת הנרשמת מספר ${registration.registrationNumber}\n${gift}\n\nנשמח לראותך באירוע! 💫`;
+
+    // Encode message for URL
+    const encodedMessage = encodeURIComponent(message);
+
+    // Create WhatsApp Web link
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+    // Open WhatsApp in new tab/window
+    // Note: This will open WhatsApp Web/App, user needs to click send
+    // For automatic sending, you need WhatsApp Business API (Twilio, etc.)
+    window.open(whatsappUrl, '_blank');
+
+    console.log('WhatsApp message prepared for:', phoneNumber);
+}
+
 // Send registration email using EmailJS
 async function sendRegistrationEmail(registration) {
+    console.log('Attempting to send registration email...', registration);
+
     // Check if EmailJS is loaded
     if (typeof emailjs === 'undefined') {
-        console.warn('EmailJS not loaded. Please add the EmailJS script to your HTML.');
+        console.error('EmailJS not loaded. Please add the EmailJS script to your HTML.');
+        alert('שגיאה: EmailJS לא נטען. אנא רענני את הדף ונסי שוב.');
         return;
     }
 
     // Check if EmailJS is configured
-    if (!EMAILJS_SERVICE_ID || EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID' ||
-        !EMAILJS_TEMPLATE_ID || EMAILJS_TEMPLATE_ID === 'YOUR_TEMPLATE_ID' ||
-        !EMAILJS_PUBLIC_KEY || EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
-        console.warn('EmailJS not configured. Please set up EmailJS credentials.');
+    if (!EMAILJS_SERVICE_ID || EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
+        console.error('EmailJS Service ID not configured');
+        alert('שגיאה: Service ID לא מוגדר');
+        return;
+    }
+
+    if (!EMAILJS_TEMPLATE_ID || EMAILJS_TEMPLATE_ID === 'YOUR_TEMPLATE_ID') {
+        console.error('EmailJS Template ID not configured');
+        alert('שגיאה: Template ID לא מוגדר');
+        return;
+    }
+
+    if (!EMAILJS_PUBLIC_KEY || EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
+        console.error('EmailJS Public Key not configured');
+        alert('שגיאה: Public Key לא מוגדר');
         return;
     }
 
     try {
+        console.log('Initializing EmailJS with Public Key:', EMAILJS_PUBLIC_KEY);
+
         // Initialize EmailJS
         emailjs.init(EMAILJS_PUBLIC_KEY);
 
         // Prepare email template parameters
+        // Note: Make sure your EmailJS Template has these variables:
+        // {{registration_number}}, {{first_name}}, {{last_name}}, {{phone}}, {{timestamp}}
+        // And set "To Email" in Template settings to: lotuspilates45@gmail.com
         const templateParams = {
-            to_email: RECIPIENT_EMAIL,
             registration_number: registration.registrationNumber,
             first_name: registration.firstName,
             last_name: registration.lastName,
             phone: registration.phone,
-            timestamp: new Date().toLocaleString('he-IL'),
-            subject: `הרשמה חדשה #${registration.registrationNumber} - לוטוס פילאטיס`,
-            message: `
-הרשמה חדשה לאירוע פתיחת השנה:
-
-מספר הרשמה: ${registration.registrationNumber}
-שם פרטי: ${registration.firstName}
-שם משפחה: ${registration.lastName}
-טלפון: ${registration.phone}
-תאריך ושעה: ${new Date().toLocaleString('he-IL')}
-            `.trim()
+            timestamp: new Date().toLocaleString('he-IL')
         };
 
+        console.log('Sending email with params:', {
+            serviceId: EMAILJS_SERVICE_ID,
+            templateId: EMAILJS_TEMPLATE_ID,
+            params: templateParams
+        });
+
         // Send email
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
-        console.log('Registration email sent successfully');
+        const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+        console.log('Registration email sent successfully!', response);
+        console.log('Email sent to:', RECIPIENT_EMAIL);
     } catch (error) {
         console.error('Error sending registration email:', error);
-        // Don't throw - we don't want to block the user experience
+        console.error('Error details:', {
+            status: error.status,
+            text: error.text,
+            message: error.message
+        });
+
+        // Show user-friendly error message
+        if (error.status === 400) {
+            alert('שגיאה בשליחת המייל: פרמטרים לא תקינים. אנא בדקי את הגדרות ה-Template ב-EmailJS.');
+        } else if (error.status === 401) {
+            alert('שגיאה בשליחת המייל: Public Key לא תקין. אנא בדקי את ה-Public Key.');
+        } else if (error.status === 404) {
+            alert('שגיאה בשליחת המייל: Service או Template לא נמצאו. אנא בדקי את ה-IDs.');
+        } else {
+            alert('שגיאה בשליחת המייל. אנא בדקי את הקונסול לדetails נוספים.');
+        }
     }
 }
 
@@ -145,6 +209,11 @@ document.getElementById('registrationForm').addEventListener('submit', function 
 
     // Get gift
     const gift = getGiftForRegistration(currentCount);
+
+    // Send WhatsApp message (opens WhatsApp with pre-filled message)
+    // Note: User needs to click send manually
+    // For automatic sending, you need WhatsApp Business API
+    sendWhatsAppMessage(registration, gift);
 
     // Display gift modal
     showGiftModal(gift, currentCount);
