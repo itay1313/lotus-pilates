@@ -1,3 +1,6 @@
+// Google Sheets Web App URL - החלפי ב-URL שקיבלת מ-Google Apps Script
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzp4a8mJ-YGPAoOIyaAoGzFy_eFIS5WMWXBe35GAVzIbM8umXoYWTc6mx6rrF3Y-5BP/exec';
+
 // Gift assignments based on registration order
 const giftAssignments = [
     // First 10: Pilates intro at 10:00
@@ -13,6 +16,8 @@ const giftAssignments = [
     // Next 20: Discount
     ...Array(20).fill('10 אחוז הנחה על סט ביגוד ספורטיבי של המעצבת ora-bora')
 ];
+
+// Total: 75 gifts
 
 // Initialize registration count from localStorage
 function getRegistrationCount() {
@@ -32,6 +37,41 @@ function getGiftForRegistration(registrationNumber) {
     }
     // If all gifts are taken, show a message
     return 'תודה על ההרשמה! נשמח לראותך באירוע!';
+}
+
+// Send registration data to Google Sheets
+async function sendToGoogleSheets(registration) {
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_SCRIPT_URL') {
+        return;
+    }
+    
+    try {
+        // Create form data for Google Apps Script
+        const formData = new URLSearchParams();
+        formData.append('registrationNumber', registration.registrationNumber);
+        formData.append('firstName', registration.firstName);
+        formData.append('lastName', registration.lastName);
+        formData.append('phone', registration.phone);
+        
+        // Send to Google Sheets using fetch with no-cors mode
+        // This works with Google Apps Script Web Apps
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData.toString()
+        }).then(() => {
+            console.log('Data sent to Google Sheets successfully');
+        }).catch(error => {
+            console.error('Error sending to Google Sheets:', error);
+        });
+        
+    } catch (error) {
+        console.error('Error preparing data for Google Sheets:', error);
+        // Don't throw - we don't want to block the user experience
+    }
 }
 
 // Form submission handler
@@ -75,6 +115,14 @@ document.getElementById('registrationForm').addEventListener('submit', function(
     localStorage.setItem('registrations', JSON.stringify(registrations));
     saveRegistrationCount(currentCount);
     
+    // Send to Google Sheets (async, don't wait for response)
+    if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'YOUR_GOOGLE_SCRIPT_URL') {
+        sendToGoogleSheets(registration).catch(error => {
+            console.error('Error sending to Google Sheets:', error);
+            // Continue anyway - don't block the user experience
+        });
+    }
+    
     // Get gift
     const gift = getGiftForRegistration(currentCount);
     
@@ -95,10 +143,10 @@ function showGiftModal(gift, registrationNumber) {
     
     giftResult.innerHTML = `
         <div style="text-align: center;">
-            <div style="font-size: 1.2em; margin-bottom: 15px; color: #FFD700;">
-                את הנרשמת מספר ${registrationNumber}
+            <div style="font-size: 1.2em; margin-bottom: 15px; color: #C9A961; font-weight: 800;">
+                <strong>את הנרשמת מספר ${registrationNumber}</strong>
             </div>
-            <div style="font-size: 1.5em; line-height: 1.6;">
+            <div style="font-size: 1.5em; line-height: 1.6; color: #1a1a1a; font-weight: 700;">
                 ${gift}
             </div>
         </div>
@@ -126,12 +174,91 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
+            const headerOffset = 80;
+            const elementPosition = target.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+            
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
             });
+            
+            // Close mobile menu if open
+            const navMenu = document.querySelector('.nav-menu');
+            if (navMenu) {
+                navMenu.classList.remove('active');
+            }
         }
     });
+});
+
+// Mobile menu toggle
+const hamburger = document.querySelector('.hamburger');
+const navMenu = document.querySelector('.nav-menu');
+
+if (hamburger && navMenu) {
+    hamburger.addEventListener('click', function() {
+        navMenu.classList.toggle('active');
+        hamburger.classList.toggle('active');
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
+            navMenu.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+    });
+}
+
+// Header scroll effect
+let lastScroll = 0;
+const header = document.querySelector('.sticky-header');
+
+window.addEventListener('scroll', function() {
+    const currentScroll = window.pageYOffset;
+    
+    if (currentScroll > 100) {
+        header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.15)';
+    } else {
+        header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
+    }
+    
+    lastScroll = currentScroll;
+});
+
+// Active nav link on scroll
+const sections = document.querySelectorAll('section[id]');
+
+function activateNavLink() {
+    const scrollY = window.pageYOffset;
+    
+    sections.forEach(section => {
+        const sectionHeight = section.offsetHeight;
+        const sectionTop = section.offsetTop - 100;
+        const sectionId = section.getAttribute('id');
+        const navLink = document.querySelector(`.nav-link[href="#${sectionId}"]`);
+        
+        if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            if (navLink) {
+                navLink.classList.add('active');
+            }
+        }
+    });
+}
+
+window.addEventListener('scroll', activateNavLink);
+
+// Set hover images for activity cards
+document.querySelectorAll('.activity-card[data-hover-image]').forEach(card => {
+    const imageUrl = card.getAttribute('data-hover-image');
+    const hoverImage = card.querySelector('.activity-hover-image');
+    if (hoverImage && imageUrl) {
+        hoverImage.style.setProperty('--hover-image', `url(${imageUrl})`);
+    }
 });
 
 // Scroll indicator click
@@ -165,7 +292,7 @@ document.querySelectorAll('section').forEach(section => {
 // Add sparkle effect to hero section
 function createSparkles() {
     const hero = document.querySelector('.hero');
-    const sparkleCount = 20;
+    const sparkleCount = 40;
     
     for (let i = 0; i < sparkleCount; i++) {
         const sparkle = document.createElement('div');
@@ -174,7 +301,8 @@ function createSparkles() {
         sparkle.style.fontSize = Math.random() * 20 + 10 + 'px';
         sparkle.style.left = Math.random() * 100 + '%';
         sparkle.style.top = Math.random() * 100 + '%';
-        sparkle.style.opacity = Math.random() * 0.5 + 0.3;
+        sparkle.style.opacity = Math.random() * 0.3 + 0.2;
+        sparkle.style.filter = 'brightness(0.8)';
         sparkle.style.animation = `sparkleFloat ${Math.random() * 3 + 2}s ease-in-out infinite`;
         sparkle.style.animationDelay = Math.random() * 2 + 's';
         sparkle.style.pointerEvents = 'none';
