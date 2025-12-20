@@ -1,9 +1,6 @@
-// EmailJS Configuration
-// להגדרה: https://www.emailjs.com/
-const EMAILJS_SERVICE_ID = 'service_ntjek1e';
-const EMAILJS_TEMPLATE_ID = 'template_z4in2ab'; // צריך ליצור Template ולקבל את ה-ID
-const EMAILJS_PUBLIC_KEY = 's1yWlJzB9AaOebjpn'; // צריך לקבל מ-Account > General
-const RECIPIENT_EMAIL = 'liad.levin1@gmail.com';
+// Mailchimp Configuration
+// להגדרה: https://mailchimp.com/
+const MAILCHIMP_FORM_ACTION = 'https://gmail.us16.list-manage.com/subscribe/post?u=515962f21ddaa00df925a622b&id=95950c22cb&f_id=00aa0ce3f0';
 
 // Gift assignments based on registration order
 const giftAssignments = [
@@ -104,95 +101,6 @@ function sendWhatsAppMessage(registration, gift) {
 }
 
 // Send registration email using EmailJS
-async function sendRegistrationEmail(registration) {
-    console.log('Attempting to send registration email...', registration);
-
-    // Check if EmailJS is loaded
-    if (typeof emailjs === 'undefined') {
-        console.error('EmailJS not loaded. Please add the EmailJS script to your HTML.');
-        console.warn('Email will not be sent, but registration will continue.');
-        return;
-    }
-
-    // Check if EmailJS is configured
-    if (!EMAILJS_SERVICE_ID || EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
-        console.error('EmailJS Service ID not configured');
-        console.warn('Email will not be sent, but registration will continue.');
-        return;
-    }
-
-    if (!EMAILJS_TEMPLATE_ID || EMAILJS_TEMPLATE_ID === 'YOUR_TEMPLATE_ID') {
-        console.error('EmailJS Template ID not configured');
-        console.warn('Email will not be sent, but registration will continue.');
-        return;
-    }
-
-    if (!EMAILJS_PUBLIC_KEY || EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
-        console.error('EmailJS Public Key not configured');
-        console.warn('Email will not be sent, but registration will continue.');
-        return;
-    }
-
-    try {
-        console.log('Initializing EmailJS with Public Key:', EMAILJS_PUBLIC_KEY);
-
-        // Initialize EmailJS
-        emailjs.init(EMAILJS_PUBLIC_KEY);
-
-        // Prepare email template parameters
-        // Note: Make sure your EmailJS Template has these variables:
-        // {{registration_number}}, {{first_name}}, {{last_name}}, {{phone}}, {{timestamp}}
-        // And set "To Email" in Template settings to: lotuspilates45@gmail.com
-        const templateParams = {
-            registration_number: registration.registrationNumber,
-            first_name: registration.firstName,
-            last_name: registration.lastName,
-            phone: registration.phone,
-            timestamp: new Date().toLocaleString('he-IL')
-        };
-
-        console.log('Sending email with params:', {
-            serviceId: EMAILJS_SERVICE_ID,
-            templateId: EMAILJS_TEMPLATE_ID,
-            params: templateParams
-        });
-
-        // Send email
-        console.log('📧 Sending email via EmailJS...');
-        const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
-        console.log('✅ Registration email sent successfully!', response);
-        console.log('📬 Email sent to:', RECIPIENT_EMAIL);
-        console.log('📋 Email details:', {
-            registrationNumber: registration.registrationNumber,
-            name: `${registration.firstName} ${registration.lastName}`,
-            phone: registration.phone
-        });
-    } catch (error) {
-        console.error('Error sending registration email:', error);
-        console.error('Error details:', {
-            status: error.status,
-            text: error.text,
-            message: error.message
-        });
-
-        // Don't show alert to user - email failure shouldn't block the user experience
-        // The registration is already saved in localStorage
-        // Log detailed error for debugging
-        if (error.status === 400) {
-            console.error('EmailJS Error 400: Invalid parameters. Check Template variables in EmailJS.');
-        } else if (error.status === 401) {
-            console.error('EmailJS Error 401: Invalid Public Key. Check Public Key in EmailJS account settings.');
-        } else if (error.status === 404) {
-            console.error('EmailJS Error 404: Service or Template not found. Check Service ID and Template ID.');
-        } else {
-            console.error('EmailJS Error: Unknown error. Check EmailJS configuration.');
-        }
-
-        // Note: Registration continues successfully even if email fails
-        console.warn('Registration saved successfully. Email notification failed but user can still see their gift.');
-    }
-}
-
 // Form submission handler
 const registrationForm = document.getElementById('registrationForm');
 
@@ -204,8 +112,9 @@ if (registrationForm) {
         const firstNameInput = document.getElementById('firstName');
         const lastNameInput = document.getElementById('lastName');
         const phoneInput = document.getElementById('phone');
+        const emailInput = document.getElementById('email');
 
-        if (!firstNameInput || !lastNameInput || !phoneInput) {
+        if (!firstNameInput || !lastNameInput || !phoneInput || !emailInput) {
             console.error('Form inputs not found');
             alert('שגיאה בטופס. אנא רענני את הדף ונסי שוב.');
             return;
@@ -214,10 +123,18 @@ if (registrationForm) {
         const firstName = firstNameInput.value.trim();
         const lastName = lastNameInput.value.trim();
         const phone = phoneInput.value.trim();
+        const email = emailInput.value.trim();
 
         // Validate form
-        if (!firstName || !lastName || !phone) {
+        if (!firstName || !lastName || !phone || !email) {
             alert('אנא מלאי את כל השדות');
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            alert('אנא הכניסי כתובת מייל תקינה');
             return;
         }
 
@@ -230,7 +147,7 @@ if (registrationForm) {
             return;
         }
 
-        // Check if phone number already exists
+        // Check if phone number or email already exists
         const existingRegistrations = JSON.parse(localStorage.getItem('registrations') || '[]');
         const phoneExists = existingRegistrations.some(reg => {
             // Normalize phone numbers for comparison (remove dashes and spaces)
@@ -238,18 +155,26 @@ if (registrationForm) {
             return existingPhone === cleanedPhone;
         });
 
+        const emailExists = existingRegistrations.some(reg => {
+            return reg.email && reg.email.toLowerCase() === email.toLowerCase();
+        });
+
         if (phoneExists) {
             alert('מספר הטלפון הזה כבר נרשם! אנא השתמשי במספר טלפון אחר.');
             return;
         }
 
+        if (emailExists) {
+            alert('כתובת המייל הזו כבר נרשמה! אנא השתמשי בכתובת מייל אחרת.');
+            return;
+        }
+
         // Get current registration count and increment
-        // IMPORTANT: Save count FIRST to ensure sequential numbering even if email fails
+        // IMPORTANT: Save count FIRST to ensure sequential numbering
         let currentCount = getRegistrationCount();
         currentCount++;
 
         // Save the new count immediately to localStorage
-        // This ensures the count persists even if the page is refreshed
         saveRegistrationCount(currentCount);
 
         // Save registration data
@@ -257,6 +182,7 @@ if (registrationForm) {
             firstName: firstName,
             lastName: lastName,
             phone: phone,
+            email: email,
             registrationNumber: currentCount,
             timestamp: new Date().toISOString()
         };
@@ -266,20 +192,22 @@ if (registrationForm) {
         registrations.push(registration);
         localStorage.setItem('registrations', JSON.stringify(registrations));
 
-        // Send registration email (async, don't wait for response)
-        sendRegistrationEmail(registration).catch(error => {
-            console.error('Error sending registration email:', error);
-            // Continue anyway - don't block the user experience
-        });
-
         // Get gift
         const gift = getGiftForRegistration(currentCount);
 
         // Display gift modal with WhatsApp button
         showGiftModal(gift, currentCount, registration);
 
-        // Reset form
-        registrationForm.reset();
+        // Submit form to Mailchimp (opens in new tab, doesn't block user)
+        // Form action is already set in HTML, just submit it
+        // IMPORTANT: Reset form AFTER submission is initiated, not before
+        setTimeout(() => {
+            registrationForm.submit();
+            // Reset form after submission is initiated (small delay to ensure data is sent)
+            setTimeout(() => {
+                registrationForm.reset();
+            }, 100);
+        }, 500);
 
         // Scroll to modal
         const giftModal = document.getElementById('giftModal');

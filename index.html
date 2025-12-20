@@ -285,13 +285,20 @@
         <section class="registration" id="registration">
             <div class="container">
                 <h2 class="section-title form-title">טופס השארת פרטים</h2>
-                <form id="registrationForm" class="registration-form">
+                <form
+                    id="registrationForm"
+                    class="registration-form"
+                    action="https://gmail.us16.list-manage.com/subscribe/post?u=515962f21ddaa00df925a622b&id=95950c22cb&f_id=00aa0ce3f0"
+                    method="post"
+                    target="_blank"
+                    novalidate
+                >
                     <div class="form-group">
                         <label for="firstName">שם פרטי</label>
                         <input
                             type="text"
                             id="firstName"
-                            name="firstName"
+                            name="FNAME"
                             required
                         >
                     </div>
@@ -300,7 +307,7 @@
                         <input
                             type="text"
                             id="lastName"
-                            name="lastName"
+                            name="LNAME"
                             required
                         >
                     </div>
@@ -309,8 +316,26 @@
                         <input
                             type="tel"
                             id="phone"
-                            name="phone"
+                            name="PHONE"
                             required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="email">מייל</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="EMAIL"
+                            required
+                        >
+                    </div>
+                    <!-- Mailchimp bot protection -->
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true">
+                        <input
+                            type="text"
+                            name="b_515962f21ddaa00df925a622b_95950c22cb"
+                            tabindex="-1"
+                            value=""
                         >
                     </div>
                     <button type="submit" class="submit-btn">הירשמי עכשיו ✨</button>
@@ -390,8 +415,6 @@
             <span class="floating-cta-text">הרשמי עכשיו</span>
             <span class="floating-cta-icon">✨</span>
         </a>
-        <!-- EmailJS SDK -->
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
         <script src="script.js"></script>
     </body>
 </html>
