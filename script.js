@@ -26,7 +26,9 @@ const giftAssignments = [
 // Initialize registration count from localStorage
 function getRegistrationCount() {
     const count = localStorage.getItem('registrationCount');
-    return count ? parseInt(count) : 0;
+    // Return 0 if no count exists (starting fresh)
+    // Parse as integer to ensure we get a number
+    return count ? parseInt(count, 10) : 0;
 }
 
 // Save registration count to localStorage
@@ -210,6 +212,19 @@ if (registrationForm) {
         const phoneRegex = /^[0-9]{9,10}$/;
         if (!phoneRegex.test(cleanedPhone)) {
             alert('אנא הכניסי מספר טלפון תקין');
+            return;
+        }
+
+        // Check if phone number already exists
+        const existingRegistrations = JSON.parse(localStorage.getItem('registrations') || '[]');
+        const phoneExists = existingRegistrations.some(reg => {
+            // Normalize phone numbers for comparison (remove dashes and spaces)
+            const existingPhone = reg.phone.replace(/[-\s]/g, '');
+            return existingPhone === cleanedPhone;
+        });
+
+        if (phoneExists) {
+            alert('מספר הטלפון הזה כבר נרשם! אנא השתמשי במספר טלפון אחר.');
             return;
         }
 
