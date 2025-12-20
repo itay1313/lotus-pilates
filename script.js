@@ -34,6 +34,15 @@ function saveRegistrationCount(count) {
     localStorage.setItem('registrationCount', count.toString());
 }
 
+// Reset all registration data (for testing)
+function resetRegistrations() {
+    localStorage.removeItem('registrationCount');
+    localStorage.removeItem('registrations');
+    console.log('✅ כל נתוני ההרשמה אופסו בהצלחה!');
+    console.log('מספר ההרשמה הבא יהיה: 1');
+    return true;
+}
+
 // Get gift based on registration number
 function getGiftForRegistration(registrationNumber) {
     if (registrationNumber <= giftAssignments.length) {
@@ -84,26 +93,26 @@ async function sendRegistrationEmail(registration) {
     // Check if EmailJS is loaded
     if (typeof emailjs === 'undefined') {
         console.error('EmailJS not loaded. Please add the EmailJS script to your HTML.');
-        alert('שגיאה: EmailJS לא נטען. אנא רענני את הדף ונסי שוב.');
+        console.warn('Email will not be sent, but registration will continue.');
         return;
     }
 
     // Check if EmailJS is configured
     if (!EMAILJS_SERVICE_ID || EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID') {
         console.error('EmailJS Service ID not configured');
-        alert('שגיאה: Service ID לא מוגדר');
+        console.warn('Email will not be sent, but registration will continue.');
         return;
     }
 
     if (!EMAILJS_TEMPLATE_ID || EMAILJS_TEMPLATE_ID === 'YOUR_TEMPLATE_ID') {
         console.error('EmailJS Template ID not configured');
-        alert('שגיאה: Template ID לא מוגדר');
+        console.warn('Email will not be sent, but registration will continue.');
         return;
     }
 
     if (!EMAILJS_PUBLIC_KEY || EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
         console.error('EmailJS Public Key not configured');
-        alert('שגיאה: Public Key לא מוגדר');
+        console.warn('Email will not be sent, but registration will continue.');
         return;
     }
 
@@ -143,87 +152,119 @@ async function sendRegistrationEmail(registration) {
             message: error.message
         });
 
-        // Show user-friendly error message
+        // Don't show alert to user - email failure shouldn't block the user experience
+        // The registration is already saved in localStorage
+        // Log detailed error for debugging
         if (error.status === 400) {
-            alert('שגיאה בשליחת המייל: פרמטרים לא תקינים. אנא בדקי את הגדרות ה-Template ב-EmailJS.');
+            console.error('EmailJS Error 400: Invalid parameters. Check Template variables in EmailJS.');
         } else if (error.status === 401) {
-            alert('שגיאה בשליחת המייל: Public Key לא תקין. אנא בדקי את ה-Public Key.');
+            console.error('EmailJS Error 401: Invalid Public Key. Check Public Key in EmailJS account settings.');
         } else if (error.status === 404) {
-            alert('שגיאה בשליחת המייל: Service או Template לא נמצאו. אנא בדקי את ה-IDs.');
+            console.error('EmailJS Error 404: Service or Template not found. Check Service ID and Template ID.');
         } else {
-            alert('שגיאה בשליחת המייל. אנא בדקי את הקונסול לדetails נוספים.');
+            console.error('EmailJS Error: Unknown error. Check EmailJS configuration.');
         }
+
+        // Note: Registration continues successfully even if email fails
+        console.warn('Registration saved successfully. Email notification failed but user can still see their gift.');
     }
 }
 
 // Form submission handler
-document.getElementById('registrationForm').addEventListener('submit', function (e) {
-    e.preventDefault();
+const registrationForm = document.getElementById('registrationForm');
 
-    // Get form values
-    const firstName = document.getElementById('firstName').value.trim();
-    const lastName = document.getElementById('lastName').value.trim();
-    const phone = document.getElementById('phone').value.trim();
+if (registrationForm) {
+    registrationForm.addEventListener('submit', function (e) {
+        e.preventDefault();
 
-    // Validate form
-    if (!firstName || !lastName || !phone) {
-        alert('אנא מלאי את כל השדות');
-        return;
-    }
+        // Get form values
+        const firstNameInput = document.getElementById('firstName');
+        const lastNameInput = document.getElementById('lastName');
+        const phoneInput = document.getElementById('phone');
 
-    // Validate phone number (basic validation)
-    const phoneRegex = /^[0-9]{9,10}$/;
-    if (!phoneRegex.test(phone.replace(/-/g, ''))) {
-        alert('אנא הכניסי מספר טלפון תקין');
-        return;
-    }
+        if (!firstNameInput || !lastNameInput || !phoneInput) {
+            console.error('Form inputs not found');
+            alert('שגיאה בטופס. אנא רענני את הדף ונסי שוב.');
+            return;
+        }
 
-    // Get current registration count and increment
-    // IMPORTANT: Save count FIRST to ensure sequential numbering even if email fails
-    let currentCount = getRegistrationCount();
-    currentCount++;
+        const firstName = firstNameInput.value.trim();
+        const lastName = lastNameInput.value.trim();
+        const phone = phoneInput.value.trim();
 
-    // Save the new count immediately to localStorage
-    // This ensures the count persists even if the page is refreshed
-    saveRegistrationCount(currentCount);
+        // Validate form
+        if (!firstName || !lastName || !phone) {
+            alert('אנא מלאי את כל השדות');
+            return;
+        }
 
-    // Save registration data
-    const registration = {
-        firstName: firstName,
-        lastName: lastName,
-        phone: phone,
-        registrationNumber: currentCount,
-        timestamp: new Date().toISOString()
-    };
+        // Validate phone number (basic validation)
+        // Remove dashes, spaces, and other non-digit characters for validation
+        const cleanedPhone = phone.replace(/[-\s]/g, '');
+        const phoneRegex = /^[0-9]{9,10}$/;
+        if (!phoneRegex.test(cleanedPhone)) {
+            alert('אנא הכניסי מספר טלפון תקין');
+            return;
+        }
 
-    // Save registration to localStorage array
-    const registrations = JSON.parse(localStorage.getItem('registrations') || '[]');
-    registrations.push(registration);
-    localStorage.setItem('registrations', JSON.stringify(registrations));
+        // Get current registration count and increment
+        // IMPORTANT: Save count FIRST to ensure sequential numbering even if email fails
+        let currentCount = getRegistrationCount();
+        currentCount++;
 
-    // Send registration email (async, don't wait for response)
-    sendRegistrationEmail(registration).catch(error => {
-        console.error('Error sending registration email:', error);
-        // Continue anyway - don't block the user experience
+        // Save the new count immediately to localStorage
+        // This ensures the count persists even if the page is refreshed
+        saveRegistrationCount(currentCount);
+
+        // Save registration data
+        const registration = {
+            firstName: firstName,
+            lastName: lastName,
+            phone: phone,
+            registrationNumber: currentCount,
+            timestamp: new Date().toISOString()
+        };
+
+        // Save registration to localStorage array
+        const registrations = JSON.parse(localStorage.getItem('registrations') || '[]');
+        registrations.push(registration);
+        localStorage.setItem('registrations', JSON.stringify(registrations));
+
+        // Send registration email (async, don't wait for response)
+        sendRegistrationEmail(registration).catch(error => {
+            console.error('Error sending registration email:', error);
+            // Continue anyway - don't block the user experience
+        });
+
+        // Get gift
+        const gift = getGiftForRegistration(currentCount);
+
+        // Display gift modal with WhatsApp button
+        showGiftModal(gift, currentCount, registration);
+
+        // Reset form
+        registrationForm.reset();
+
+        // Scroll to modal
+        const giftModal = document.getElementById('giftModal');
+        if (giftModal) {
+            giftModal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     });
-
-    // Get gift
-    const gift = getGiftForRegistration(currentCount);
-
-    // Display gift modal with WhatsApp button
-    showGiftModal(gift, currentCount, registration);
-
-    // Reset form
-    document.getElementById('registrationForm').reset();
-
-    // Scroll to modal
-    document.getElementById('giftModal').scrollIntoView({ behavior: 'smooth', block: 'center' });
-});
+} else {
+    console.error('Registration form not found');
+}
 
 // Show gift modal
 function showGiftModal(gift, registrationNumber, registration) {
     const modal = document.getElementById('giftModal');
     const giftResult = document.getElementById('giftResult');
+
+    // Remove any existing WhatsApp button before clearing content
+    const existingWhatsAppBtn = document.getElementById('whatsappBtn');
+    if (existingWhatsAppBtn) {
+        existingWhatsAppBtn.remove();
+    }
 
     giftResult.innerHTML = `
         <div style="text-align: center;">
@@ -248,9 +289,15 @@ function showGiftModal(gift, registrationNumber, registration) {
 function addWhatsAppButtonToModal(registration, gift, registrationNumber) {
     const giftResult = document.getElementById('giftResult');
 
-    // Check if button already exists
-    if (document.getElementById('whatsappBtn')) {
+    if (!giftResult) {
+        console.warn('Gift result element not found');
         return;
+    }
+
+    // Remove any existing WhatsApp button to prevent duplicates
+    const existingBtn = document.getElementById('whatsappBtn');
+    if (existingBtn) {
+        existingBtn.remove();
     }
 
     // Create WhatsApp button
@@ -264,7 +311,7 @@ function addWhatsAppButtonToModal(registration, gift, registrationNumber) {
         שלחי לי בוואטסאפ
     `;
 
-    // Add click event
+    // Add click event with current registration data
     whatsappBtn.addEventListener('click', function () {
         sendWhatsAppMessage(registration, gift);
     });
@@ -395,17 +442,19 @@ if (hamburger && navMenu) {
 let lastScroll = 0;
 const header = document.querySelector('.sticky-header');
 
-window.addEventListener('scroll', function () {
-    const currentScroll = window.pageYOffset;
+if (header) {
+    window.addEventListener('scroll', function () {
+        const currentScroll = window.pageYOffset;
 
-    if (currentScroll > 100) {
-        header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.15)';
-    } else {
-        header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
-    }
+        if (currentScroll > 100) {
+            header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.15)';
+        } else {
+            header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
+        }
 
-    lastScroll = currentScroll;
-});
+        lastScroll = currentScroll;
+    });
+}
 
 // Active nav link on scroll
 const sections = document.querySelectorAll('section[id]');
@@ -442,9 +491,14 @@ document.querySelectorAll('.activity-card[data-hover-image]').forEach(card => {
 });
 
 // Scroll indicator click
-document.querySelector('.scroll-indicator').addEventListener('click', function () {
-    document.querySelector('.intro').scrollIntoView({ behavior: 'smooth' });
-});
+const scrollIndicator = document.querySelector('.scroll-indicator');
+const introSection = document.querySelector('.intro');
+
+if (scrollIndicator && introSection) {
+    scrollIndicator.addEventListener('click', function () {
+        introSection.scrollIntoView({ behavior: 'smooth' });
+    });
+}
 
 // Add scroll animations
 const observerOptions = {
@@ -472,6 +526,12 @@ document.querySelectorAll('section').forEach(section => {
 // Add sparkle effect to hero section
 function createSparkles() {
     const hero = document.querySelector('.hero');
+
+    if (!hero) {
+        console.warn('Hero section not found, skipping sparkle effect');
+        return;
+    }
+
     const sparkleCount = 40;
 
     for (let i = 0; i < sparkleCount; i++) {
@@ -509,6 +569,19 @@ document.head.appendChild(style);
 // Initialize sparkles when page loads
 window.addEventListener('load', function () {
     createSparkles();
+
+    // Make reset function available in console for testing
+    // Run: resetRegistrations() in browser console to reset all registrations
+    window.resetRegistrations = resetRegistrations;
+
+    // Log current registration count on page load
+    const currentCount = getRegistrationCount();
+    if (currentCount > 0) {
+        console.log(`📊 מספר ההרשמה הנוכחי: ${currentCount}`);
+        console.log('💡 להאיפוס: הרצי resetRegistrations() בקונסול');
+    } else {
+        console.log('✨ אין הרשמות - מוכן להתחלה חדשה');
+    }
 });
 
 // Add parallax effect to hero section
