@@ -100,7 +100,6 @@ function sendWhatsAppMessage(registration, gift) {
     console.log('WhatsApp message prepared for:', phoneNumber);
 }
 
-// Send registration email using EmailJS
 // Form submission handler
 const registrationForm = document.getElementById('registrationForm');
 
@@ -201,12 +200,15 @@ if (registrationForm) {
         // Submit form to Mailchimp (opens in new tab, doesn't block user)
         // Form action is already set in HTML, just submit it
         // IMPORTANT: Reset form AFTER submission is initiated, not before
+        // Use a delay to ensure data is transmitted to Mailchimp before clearing fields
         setTimeout(() => {
             registrationForm.submit();
-            // Reset form after submission is initiated (small delay to ensure data is sent)
+            // Reset form after submission is initiated
+            // Use a longer delay (500ms) to ensure data is sent to Mailchimp
+            // before clearing the form fields, especially on slower connections
             setTimeout(() => {
                 registrationForm.reset();
-            }, 100);
+            }, 500);
         }, 500);
 
         // Scroll to modal
