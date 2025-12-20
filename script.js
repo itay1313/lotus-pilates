@@ -141,9 +141,15 @@ async function sendRegistrationEmail(registration) {
         });
 
         // Send email
+        console.log('📧 Sending email via EmailJS...');
         const response = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
-        console.log('Registration email sent successfully!', response);
-        console.log('Email sent to:', RECIPIENT_EMAIL);
+        console.log('✅ Registration email sent successfully!', response);
+        console.log('📬 Email sent to:', RECIPIENT_EMAIL);
+        console.log('📋 Email details:', {
+            registrationNumber: registration.registrationNumber,
+            name: `${registration.firstName} ${registration.lastName}`,
+            phone: registration.phone
+        });
     } catch (error) {
         console.error('Error sending registration email:', error);
         console.error('Error details:', {
@@ -592,4 +598,3 @@ window.addEventListener('scroll', function () {
         hero.style.transform = `translateY(${scrolled * 0.5}px)`;
     }
 });
-
