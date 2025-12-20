@@ -142,7 +142,7 @@ async function sendRegistrationEmail(registration) {
         // Prepare email template parameters
         // Note: Make sure your EmailJS Template has these variables:
         // {{registration_number}}, {{first_name}}, {{last_name}}, {{phone}}, {{timestamp}}
-        // And set "To Email" in Template settings to: lotuspilates45@gmail.com
+        // And set "To Email" in Template settings to: liad.levin1@gmail.com
         const templateParams = {
             registration_number: registration.registrationNumber,
             first_name: registration.firstName,
@@ -150,6 +150,8 @@ async function sendRegistrationEmail(registration) {
             phone: registration.phone,
             timestamp: new Date().toLocaleString('he-IL')
         };
+
+        console.log('📝 Template parameters prepared:', templateParams);
 
         console.log('Sending email with params:', {
             serviceId: EMAILJS_SERVICE_ID,
