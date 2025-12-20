@@ -1,5 +1,9 @@
-// Google Sheets Web App URL - החלפי ב-URL שקיבלת מ-Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzp4a8mJ-YGPAoOIyaAoGzFy_eFIS5WMWXBe35GAVzIbM8umXoYWTc6mx6rrF3Y-5BP/exec';
+// EmailJS Configuration
+// להגדרה: https://www.emailjs.com/
+const EMAILJS_SERVICE_ID = 'service_ntjek1e';
+const EMAILJS_TEMPLATE_ID = 'template_z4in2ab'; // צריך ליצור Template ולקבל את ה-ID
+const EMAILJS_PUBLIC_KEY = 's1yWlJzB9AaOebjpn'; // צריך לקבל מ-Account > General
+const RECIPIENT_EMAIL = 'lotuspilates45@gmail.com';
 
 // Gift assignments based on registration order
 const giftAssignments = [
@@ -39,68 +43,87 @@ function getGiftForRegistration(registrationNumber) {
     return 'תודה על ההרשמה! נשמח לראותך באירוע!';
 }
 
-// Send registration data to Google Sheets
-async function sendToGoogleSheets(registration) {
-    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_SCRIPT_URL') {
+// Send registration email using EmailJS
+async function sendRegistrationEmail(registration) {
+    // Check if EmailJS is loaded
+    if (typeof emailjs === 'undefined') {
+        console.warn('EmailJS not loaded. Please add the EmailJS script to your HTML.');
         return;
     }
-    
+
+    // Check if EmailJS is configured
+    if (!EMAILJS_SERVICE_ID || EMAILJS_SERVICE_ID === 'YOUR_SERVICE_ID' ||
+        !EMAILJS_TEMPLATE_ID || EMAILJS_TEMPLATE_ID === 'YOUR_TEMPLATE_ID' ||
+        !EMAILJS_PUBLIC_KEY || EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
+        console.warn('EmailJS not configured. Please set up EmailJS credentials.');
+        return;
+    }
+
     try {
-        // Create form data for Google Apps Script
-        const formData = new URLSearchParams();
-        formData.append('registrationNumber', registration.registrationNumber);
-        formData.append('firstName', registration.firstName);
-        formData.append('lastName', registration.lastName);
-        formData.append('phone', registration.phone);
-        
-        // Send to Google Sheets using fetch with no-cors mode
-        // This works with Google Apps Script Web Apps
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: formData.toString()
-        }).then(() => {
-            console.log('Data sent to Google Sheets successfully');
-        }).catch(error => {
-            console.error('Error sending to Google Sheets:', error);
-        });
-        
+        // Initialize EmailJS
+        emailjs.init(EMAILJS_PUBLIC_KEY);
+
+        // Prepare email template parameters
+        const templateParams = {
+            to_email: RECIPIENT_EMAIL,
+            registration_number: registration.registrationNumber,
+            first_name: registration.firstName,
+            last_name: registration.lastName,
+            phone: registration.phone,
+            timestamp: new Date().toLocaleString('he-IL'),
+            subject: `הרשמה חדשה #${registration.registrationNumber} - לוטוס פילאטיס`,
+            message: `
+הרשמה חדשה לאירוע פתיחת השנה:
+
+מספר הרשמה: ${registration.registrationNumber}
+שם פרטי: ${registration.firstName}
+שם משפחה: ${registration.lastName}
+טלפון: ${registration.phone}
+תאריך ושעה: ${new Date().toLocaleString('he-IL')}
+            `.trim()
+        };
+
+        // Send email
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
+        console.log('Registration email sent successfully');
     } catch (error) {
-        console.error('Error preparing data for Google Sheets:', error);
+        console.error('Error sending registration email:', error);
         // Don't throw - we don't want to block the user experience
     }
 }
 
 // Form submission handler
-document.getElementById('registrationForm').addEventListener('submit', function(e) {
+document.getElementById('registrationForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    
+
     // Get form values
     const firstName = document.getElementById('firstName').value.trim();
     const lastName = document.getElementById('lastName').value.trim();
     const phone = document.getElementById('phone').value.trim();
-    
+
     // Validate form
     if (!firstName || !lastName || !phone) {
         alert('אנא מלאי את כל השדות');
         return;
     }
-    
+
     // Validate phone number (basic validation)
     const phoneRegex = /^[0-9]{9,10}$/;
     if (!phoneRegex.test(phone.replace(/-/g, ''))) {
         alert('אנא הכניסי מספר טלפון תקין');
         return;
     }
-    
-    // Get current registration count
+
+    // Get current registration count and increment
+    // IMPORTANT: Save count FIRST to ensure sequential numbering even if email fails
     let currentCount = getRegistrationCount();
     currentCount++;
-    
-    // Save registration
+
+    // Save the new count immediately to localStorage
+    // This ensures the count persists even if the page is refreshed
+    saveRegistrationCount(currentCount);
+
+    // Save registration data
     const registration = {
         firstName: firstName,
         lastName: lastName,
@@ -108,30 +131,27 @@ document.getElementById('registrationForm').addEventListener('submit', function(
         registrationNumber: currentCount,
         timestamp: new Date().toISOString()
     };
-    
-    // Save to localStorage
+
+    // Save registration to localStorage array
     const registrations = JSON.parse(localStorage.getItem('registrations') || '[]');
     registrations.push(registration);
     localStorage.setItem('registrations', JSON.stringify(registrations));
-    saveRegistrationCount(currentCount);
-    
-    // Send to Google Sheets (async, don't wait for response)
-    if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'YOUR_GOOGLE_SCRIPT_URL') {
-        sendToGoogleSheets(registration).catch(error => {
-            console.error('Error sending to Google Sheets:', error);
-            // Continue anyway - don't block the user experience
-        });
-    }
-    
+
+    // Send registration email (async, don't wait for response)
+    sendRegistrationEmail(registration).catch(error => {
+        console.error('Error sending registration email:', error);
+        // Continue anyway - don't block the user experience
+    });
+
     // Get gift
     const gift = getGiftForRegistration(currentCount);
-    
+
     // Display gift modal
     showGiftModal(gift, currentCount);
-    
+
     // Reset form
     document.getElementById('registrationForm').reset();
-    
+
     // Scroll to modal
     document.getElementById('giftModal').scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
@@ -140,7 +160,7 @@ document.getElementById('registrationForm').addEventListener('submit', function(
 function showGiftModal(gift, registrationNumber) {
     const modal = document.getElementById('giftModal');
     const giftResult = document.getElementById('giftResult');
-    
+
     giftResult.innerHTML = `
         <div style="text-align: center;">
             <div style="font-size: 1.2em; margin-bottom: 15px; color: #C9A961; font-weight: 800;">
@@ -151,20 +171,77 @@ function showGiftModal(gift, registrationNumber) {
             </div>
         </div>
     `;
-    
+
     modal.style.display = 'block';
 }
 
-// Close modal
-document.querySelector('.close-modal').addEventListener('click', function() {
-    document.getElementById('giftModal').style.display = 'none';
-});
+// Video modal functionality
+const videoBtn = document.getElementById('videoBtn');
+const videoModal = document.getElementById('videoModal');
+const videoClose = document.querySelector('.video-close');
+const youtubeVideo = document.getElementById('youtubeVideo');
 
-// Close modal when clicking outside
-window.addEventListener('click', function(e) {
-    const modal = document.getElementById('giftModal');
-    if (e.target === modal) {
-        modal.style.display = 'none';
+// YouTube Shorts URL to embed URL conversion
+function convertYouTubeShortsToEmbed(url) {
+    // Extract video ID from shorts URL
+    // https://www.youtube.com/shorts/2qqGcZQmNvY -> 2qqGcZQmNvY
+    const videoId = url.split('/shorts/')[1]?.split('?')[0];
+    if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    }
+    return '';
+}
+
+// Open video modal
+if (videoBtn) {
+    videoBtn.addEventListener('click', function () {
+        const videoUrl = 'https://www.youtube.com/shorts/2qqGcZQmNvY';
+        const embedUrl = convertYouTubeShortsToEmbed(videoUrl);
+        if (embedUrl && youtubeVideo) {
+            youtubeVideo.src = embedUrl;
+            videoModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+    });
+}
+
+// Close video modal
+if (videoClose) {
+    videoClose.addEventListener('click', function () {
+        videoModal.style.display = 'none';
+        if (youtubeVideo) {
+            youtubeVideo.src = ''; // Stop video playback
+        }
+        document.body.style.overflow = 'auto';
+    });
+}
+
+// Close video modal when clicking outside
+if (videoModal) {
+    window.addEventListener('click', function (e) {
+        if (e.target === videoModal) {
+            videoModal.style.display = 'none';
+            if (youtubeVideo) {
+                youtubeVideo.src = ''; // Stop video playback
+            }
+            document.body.style.overflow = 'auto';
+        }
+    });
+}
+
+// Close gift modal
+const giftModalClose = document.querySelector('#giftModal .close-modal');
+if (giftModalClose) {
+    giftModalClose.addEventListener('click', function () {
+        document.getElementById('giftModal').style.display = 'none';
+    });
+}
+
+// Close gift modal when clicking outside
+window.addEventListener('click', function (e) {
+    const giftModal = document.getElementById('giftModal');
+    if (e.target === giftModal) {
+        giftModal.style.display = 'none';
     }
 });
 
@@ -177,12 +254,12 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             const headerOffset = 80;
             const elementPosition = target.getBoundingClientRect().top;
             const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-            
+
             window.scrollTo({
                 top: offsetPosition,
                 behavior: 'smooth'
             });
-            
+
             // Close mobile menu if open
             const navMenu = document.querySelector('.nav-menu');
             if (navMenu) {
@@ -197,13 +274,13 @@ const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
 
 if (hamburger && navMenu) {
-    hamburger.addEventListener('click', function() {
+    hamburger.addEventListener('click', function () {
         navMenu.classList.toggle('active');
         hamburger.classList.toggle('active');
     });
-    
+
     // Close menu when clicking outside
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
             navMenu.classList.remove('active');
             hamburger.classList.remove('active');
@@ -215,15 +292,15 @@ if (hamburger && navMenu) {
 let lastScroll = 0;
 const header = document.querySelector('.sticky-header');
 
-window.addEventListener('scroll', function() {
+window.addEventListener('scroll', function () {
     const currentScroll = window.pageYOffset;
-    
+
     if (currentScroll > 100) {
         header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.15)';
     } else {
         header.style.boxShadow = '0 2px 20px rgba(0, 0, 0, 0.1)';
     }
-    
+
     lastScroll = currentScroll;
 });
 
@@ -232,13 +309,13 @@ const sections = document.querySelectorAll('section[id]');
 
 function activateNavLink() {
     const scrollY = window.pageYOffset;
-    
+
     sections.forEach(section => {
         const sectionHeight = section.offsetHeight;
         const sectionTop = section.offsetTop - 100;
         const sectionId = section.getAttribute('id');
         const navLink = document.querySelector(`.nav-link[href="#${sectionId}"]`);
-        
+
         if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
@@ -262,7 +339,7 @@ document.querySelectorAll('.activity-card[data-hover-image]').forEach(card => {
 });
 
 // Scroll indicator click
-document.querySelector('.scroll-indicator').addEventListener('click', function() {
+document.querySelector('.scroll-indicator').addEventListener('click', function () {
     document.querySelector('.intro').scrollIntoView({ behavior: 'smooth' });
 });
 
@@ -272,7 +349,7 @@ const observerOptions = {
     rootMargin: '0px 0px -50px 0px'
 };
 
-const observer = new IntersectionObserver(function(entries) {
+const observer = new IntersectionObserver(function (entries) {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
             entry.target.style.opacity = '1';
@@ -293,7 +370,7 @@ document.querySelectorAll('section').forEach(section => {
 function createSparkles() {
     const hero = document.querySelector('.hero');
     const sparkleCount = 40;
-    
+
     for (let i = 0; i < sparkleCount; i++) {
         const sparkle = document.createElement('div');
         sparkle.innerHTML = '✨';
@@ -327,12 +404,12 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Initialize sparkles when page loads
-window.addEventListener('load', function() {
+window.addEventListener('load', function () {
     createSparkles();
 });
 
 // Add parallax effect to hero section
-window.addEventListener('scroll', function() {
+window.addEventListener('scroll', function () {
     const scrolled = window.pageYOffset;
     const hero = document.querySelector('.hero');
     if (hero) {

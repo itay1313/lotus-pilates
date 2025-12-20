@@ -63,7 +63,12 @@
                 <p class="hero-subtitle">אירוע פתיחת השנה הנוצץ | לוטוס פילאטיס</p>
                 <div class="hero-cta">
                     <a href="#registration" class="hero-btn-primary">הירשמי עכשיו</a>
-                    <a href="#intro" class="hero-btn-secondary">גלה עוד</a>
+                    <button type="button" class="hero-btn-secondary video-btn" id="videoBtn">
+                        <svg viewBox="0 0 24 24" fill="currentColor" class="play-icon">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        צפה בסרטון
+                    </button>
                 </div>
             </div>
             <div class="scroll-indicator">
@@ -350,6 +355,22 @@
                 </div>
             </div>
         </section>
+        <!-- Video Modal -->
+        <div id="videoModal" class="modal video-modal">
+            <div class="modal-content video-modal-content">
+                <span class="close-modal video-close">&times;</span>
+                <div class="video-wrapper">
+                    <iframe
+                        id="youtubeVideo"
+                        src=""
+                        frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen
+                        class="video-iframe"
+                    ></iframe>
+                </div>
+            </div>
+        </div>
         <!-- Gift Result Modal -->
         <div id="giftModal" class="modal">
             <div class="modal-content">
@@ -368,6 +389,8 @@
             <span class="floating-cta-text">הרשמי עכשיו</span>
             <span class="floating-cta-icon">✨</span>
         </a>
+        <!-- EmailJS SDK -->
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
         <script src="script.js"></script>
     </body>
 </html>
