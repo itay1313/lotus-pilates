@@ -378,8 +378,12 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 
             // Close mobile menu if open
             const navMenu = document.querySelector('.nav-menu');
+            const hamburger = document.querySelector('.hamburger');
             if (navMenu) {
                 navMenu.classList.remove('active');
+            }
+            if (hamburger) {
+                hamburger.classList.remove('active');
             }
         }
     });
@@ -475,17 +479,28 @@ const observerOptions = {
 const observer = new IntersectionObserver(function (entries) {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
+            const isHero = entry.target.classList.contains('hero');
             entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
+            // Only apply transform reset to non-hero sections to avoid conflict with parallax
+            if (!isHero) {
+                entry.target.style.transform = 'translateY(0)';
+            }
         }
     });
 }, observerOptions);
 
 // Observe all sections for scroll animations
+// Exclude hero section from transform animation to avoid conflict with parallax effect
 document.querySelectorAll('section').forEach(section => {
+    const isHero = section.classList.contains('hero');
     section.style.opacity = '0';
-    section.style.transform = 'translateY(30px)';
     section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+
+    // Only apply transform animation to non-hero sections
+    if (!isHero) {
+        section.style.transform = 'translateY(30px)';
+    }
+
     observer.observe(section);
 });
 
