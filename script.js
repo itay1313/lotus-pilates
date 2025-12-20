@@ -134,10 +134,17 @@ async function sendRegistrationEmail(registration) {
     }
 
     try {
-        console.log('Initializing EmailJS with Public Key:', EMAILJS_PUBLIC_KEY);
+        console.log('🔧 Initializing EmailJS...');
+        console.log('📋 Configuration:', {
+            serviceId: EMAILJS_SERVICE_ID,
+            templateId: EMAILJS_TEMPLATE_ID,
+            publicKey: EMAILJS_PUBLIC_KEY ? `${EMAILJS_PUBLIC_KEY.substring(0, 5)}...` : 'NOT SET',
+            recipientEmail: RECIPIENT_EMAIL
+        });
 
         // Initialize EmailJS
         emailjs.init(EMAILJS_PUBLIC_KEY);
+        console.log('✅ EmailJS initialized successfully');
 
         // Prepare email template parameters
         // Note: Make sure your EmailJS Template has these variables:

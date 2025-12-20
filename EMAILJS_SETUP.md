@@ -2,7 +2,7 @@
 
 ## שלב 1: יצירת חשבון EmailJS
 
-1. הירשמי ל-EmailJS: https://www.emailjs.com/
+1. הירשמי ל-EmailJS: <https://www.emailjs.com/>
 2. צרי חשבון חינמי (100 מיילים בחודש)
 
 ## שלב 2: הגדרת Email Service
@@ -20,11 +20,13 @@
 3. השתמשי בתבנית הבאה:
 
 **Subject:**
+
 ```
 הרשמה חדשה #{{registration_number}} - לוטוס פילאטיס
 ```
 
 **Content:**
+
 ```
 הרשמה חדשה לאירוע פתיחת השנה:
 
@@ -38,7 +40,7 @@
 נשלח אוטומטית מאתר לוטוס פילאטיס
 ```
 
-4. ב-**To Email** הכניסי: `lotuspilates45@gmail.com`
+4. ב-**To Email** הכניסי: `liad.levin1@gmail.com`
 5. ב-**From Name** הכניסי: `לוטוס פילאטיס`
 6. שמרי את התבנית והעתיקי את ה-**Template ID** (נראה כך: `template_xxxxx`)
 
@@ -51,6 +53,7 @@
 
 1. פתחי את קובץ `script.js`
 2. מצאי את השורות הבאות:
+
 ```javascript
 const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID';
 const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
@@ -65,9 +68,10 @@ const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
 ## בדיקה
 
 לאחר ההגדרה, כל הרשמה חדשה תישלח אוטומטית למייל:
-**lotuspilates45@gmail.com**
+**<liad.levin1@gmail.com>**
 
 המייל יכלול:
+
 - מספר הרשמה (לפי הסדר)
 - שם פרטי
 - שם משפחה
@@ -79,4 +83,3 @@ const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
 - המספר של ההרשמה נשמר ב-localStorage, כך שגם אם המשתמש ירענן את הדף, המספר יישמר
 - המייל נשלח באופן אסינכרוני ולא חוסם את חוויית המשתמש
 - אם שליחת המייל נכשלת, המשתמש עדיין יראה את המתנה שלו
-
