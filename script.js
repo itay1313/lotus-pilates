@@ -66,6 +66,64 @@ function getGiftForRegistration(registrationNumber) {
     return 'תודה על ההרשמה! נשמח לראותך באירוע!';
 }
 
+// Submit form to Mailchimp via hidden iframe (stays on same page)
+function submitToMailchimp(firstName, lastName, phone, email) {
+    // Create a hidden iframe for form submission
+    let iframe = document.getElementById('mailchimpHiddenIframe');
+    
+    // Create iframe if it doesn't exist
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'mailchimpHiddenIframe';
+        iframe.name = 'mailchimpHiddenIframe';
+        iframe.style.display = 'none';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+    }
+    
+    // Create a temporary form to submit to Mailchimp
+    const tempForm = document.createElement('form');
+    tempForm.method = 'POST';
+    tempForm.action = 'https://gmail.us16.list-manage.com/subscribe/post?u=515962f21ddaa00df925a622b&id=95950c22cb&f_id=00aa0ce3f0';
+    tempForm.target = 'mailchimpHiddenIframe';
+    
+    // Add form fields
+    const fields = [
+        { name: 'FNAME', value: firstName },
+        { name: 'LNAME', value: lastName },
+        { name: 'PHONE', value: phone },
+        { name: 'EMAIL', value: email }
+    ];
+    
+    fields.forEach(field => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = field.name;
+        input.value = field.value;
+        tempForm.appendChild(input);
+    });
+    
+    // Add bot protection field (Mailchimp requires this)
+    const botField = document.createElement('input');
+    botField.type = 'text';
+    botField.name = 'b_515962f21ddaa00df925a622b_95950c22cb';
+    botField.value = '';
+    botField.style.position = 'absolute';
+    botField.style.left = '-5000px';
+    tempForm.appendChild(botField);
+    
+    // Append form to body, submit, then remove
+    document.body.appendChild(tempForm);
+    tempForm.submit();
+    
+    // Remove form after a short delay
+    setTimeout(() => {
+        document.body.removeChild(tempForm);
+    }, 1000);
+}
+
 // Send WhatsApp message to user
 function sendWhatsAppMessage(registration, gift) {
     // Format phone number (remove dashes, ensure it starts with country code)
@@ -194,22 +252,14 @@ if (registrationForm) {
         // Get gift
         const gift = getGiftForRegistration(currentCount);
 
+        // Submit form to Mailchimp via hidden iframe (doesn't navigate away)
+        submitToMailchimp(firstName, lastName, phone, email);
+
         // Display gift modal with WhatsApp button
         showGiftModal(gift, currentCount, registration);
 
-        // Submit form to Mailchimp (opens in new tab, doesn't block user)
-        // Form action is already set in HTML, just submit it
-        // IMPORTANT: Reset form AFTER submission is initiated, not before
-        // Use a delay to ensure data is transmitted to Mailchimp before clearing fields
-        setTimeout(() => {
-            registrationForm.submit();
-            // Reset form after submission is initiated
-            // Use a longer delay (500ms) to ensure data is sent to Mailchimp
-            // before clearing the form fields, especially on slower connections
-            setTimeout(() => {
-                registrationForm.reset();
-            }, 500);
-        }, 500);
+        // Reset form after showing modal
+        registrationForm.reset();
 
         // Scroll to modal
         const giftModal = document.getElementById('giftModal');
