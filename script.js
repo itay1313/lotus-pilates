@@ -249,14 +249,14 @@ if (registrationForm) {
         registrations.push(registration);
         localStorage.setItem('registrations', JSON.stringify(registrations));
 
-        // Get gift
+        // Get gift (saved but not displayed to user)
         const gift = getGiftForRegistration(currentCount);
 
         // Submit form to Mailchimp via hidden iframe (doesn't navigate away)
         submitToMailchimp(firstName, lastName, phone, email);
 
-        // Display gift modal with WhatsApp button
-        showGiftModal(gift, currentCount, registration);
+        // Display thank you modal
+        showThankYouModal();
 
         // Reset form after showing modal
         registrationForm.reset();
@@ -271,8 +271,8 @@ if (registrationForm) {
     console.error('Registration form not found');
 }
 
-// Show gift modal
-function showGiftModal(gift, registrationNumber, registration) {
+// Show thank you modal
+function showThankYouModal() {
     const modal = document.getElementById('giftModal');
     const giftResult = document.getElementById('giftResult');
 
@@ -284,21 +284,14 @@ function showGiftModal(gift, registrationNumber, registration) {
 
     giftResult.innerHTML = `
         <div style="text-align: center;">
-            <div style="font-size: 1.2em; margin-bottom: 15px; color: #C9A961; font-weight: 800;">
-                <strong>את הנרשמת מספר ${registrationNumber}</strong>
-            </div>
-            <div style="font-size: 1.5em; line-height: 1.6; color: #1a1a1a; font-weight: 700;">
-                ${gift}
+            <div style="font-size: 1.3em; line-height: 1.8; color: #1a1a1a; font-weight: 600;">
+                תודה שנרשמת!<br>
+                שובר המתנה יישלח אלייך במייל
             </div>
         </div>
     `;
 
     modal.style.display = 'block';
-
-    // Add WhatsApp button to modal if registration data is available
-    if (registration) {
-        addWhatsAppButtonToModal(registration, gift, registrationNumber);
-    }
 }
 
 // Add WhatsApp button to the gift modal
